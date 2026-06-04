@@ -21,7 +21,7 @@ class TickGenerator:
         'price': round(random.uniform(100 , 500) , 2),
         'volume': random.randint(100 , 10000),
         'timestamp': datetime.now(timezone.utc).isoformat(),
-        'event_id': f"{symbol}-{int(time.time() * 1000)}"
+        'event_id': f"{symbol}-{int(time.time() * 1000000)}"
     }
 
     def random_symbol(self) -> str:
