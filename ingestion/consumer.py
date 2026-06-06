@@ -1,5 +1,4 @@
 import json
-from confluent_kafka import Consumer, KafkaError
 from confluent_kafka import Consumer, TopicPartition
 
 

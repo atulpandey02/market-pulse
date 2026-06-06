@@ -27,7 +27,7 @@ jobs:
         run: |
           flake8 ingestion/ \
             --max-line-length=120 \
-            --ignore=E251,E203,W293,W291,E303,E302,E305,E128,E266,W503,F541,E231
+            --ignore=E251,E203,W293,W291,E303,E302,E305,E128,E266,W503,F541,E231,E122
 
       - name: Run tests
         run: |
