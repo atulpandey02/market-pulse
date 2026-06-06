@@ -2,7 +2,7 @@ import json
 import time
 import random
 from datetime import datetime, timezone
-from kafka import KafkaProducer
+from confluent_kafka import Producer
 
 
 # Configuration
@@ -35,27 +35,40 @@ class TickGenerator:
 class StockPriceProducer:
     def __init__(self, bootstrap_servers: str, topic: str):
         self.topic = topic
-        self.producer = KafkaProducer(
-            bootstrap_servers=BOOTSTRAP_SERVERS,
-            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-            key_serializer=lambda k: k.encode("utf-8"),
-            acks="all",
-            retries=3,
-            enable_idempotence=True,
-        )
+        self.producer = Producer({
+        'bootstrap.servers': bootstrap_servers,
+        'acks': 'all',
+        'retries': 3,
+        'enable.idempotence': True,
+        'linger.ms': 5,
+        'batch.size': 16384,
+        'compression.type': 'snappy'
+    })
 
     def publish(self, key: str, value: dict) -> None:
-        future = self.producer.send(topic=self.topic, key=key, value=value)
-        metadata = future.get(timeout=10)
-        print(
-            f"Sent: {value['symbol']} @ ${value['price']}"
-            f" | partition={metadata.partition}"
-            f" | offset={metadata.offset}"
+        """Publish a single message to Kafka."""
+        self.producer.produce(
+            topic=self.topic,
+            key=key.encode('utf-8'),
+            value=json.dumps(value).encode('utf-8'),
+            callback=self._delivery_callback
         )
+        self.producer.poll(0)
+
+    def _delivery_callback(self, err, msg):
+        """Called when message is delivered or fails."""
+        if err:
+            print(f"Delivery failed: {err}")
+        else:
+            print(
+                f"Sent: {msg.key().decode()} "
+                f"| partition={msg.partition()} "
+                f"| offset={msg.offset()}"
+            )
 
     def close(self) -> None:
+        """Flush and close the producer cleanly."""
         self.producer.flush()
-        self.producer.close()
         print("Producer closed cleanly.")
 
 

@@ -1,5 +1,6 @@
 import json
-from kafka import KafkaConsumer
+from confluent_kafka import Consumer, KafkaError
+from confluent_kafka import Consumer, TopicPartition
 
 
 # Config
@@ -48,16 +49,13 @@ class StockPriceConsumer:
 
     def __init__(self, bootstrap_servers: str, topic: str, group_id: str):
         self.topic = topic
-        self.running = True
-        self.consumer = KafkaConsumer(
-            topic,
-            bootstrap_servers=bootstrap_servers,
-            group_id=group_id,
-            value_deserializer=lambda v: json.loads(v.decode("utf-8")),
-            key_deserializer=lambda k: k.decode("utf-8") if k else None,
-            auto_offset_reset="earliest",
-            enable_auto_commit=False,
-        )
+        self.kafka_consumer = Consumer({
+            'bootstrap.servers': bootstrap_servers,
+            'group.id': group_id,
+            'auto.offset.reset': 'earliest',
+            'enable.auto.commit': False,
+        })
+        self.kafka_consumer.subscribe([topic])
 
     def close(self) -> None:
         """Close the consumer cleanly."""
@@ -77,29 +75,42 @@ class ConsumptionPipeline:
         self.processor = processor
 
     def run(self) -> None:
-        """Main consumption loop."""
         print(f"Starting consumer | group={GROUP_ID} | topic={TOPIC}")
+        print("Waiting for messages...\n")
 
         try:
-            for message in self.consumer.consumer:
-                tick = message.value
+            while True:
+                msg = self.consumer.kafka_consumer.poll(timeout=1.0)
 
-                # Process FIRST , commit after
-                self.processor.process(tick)
+                if msg is None:
+                    continue
 
-                # Manual commit after successful processing
-                # at-least-once delivery guarantee
-                self.consumer.consumer.commit()
+                if msg.error():
+                    print(f"Consumer error: {msg.error()}")
+                    continue
 
-                print(
-                    f"Offset commited: partition = {message.partition}"
-                    f" | offset={message.offset}"
-                )
+                tick = json.loads(msg.value().decode('utf-8'))
+
+                processed = self.processor.process(tick)
+
+                if processed:
+                    self.consumer.kafka_consumer.commit(
+                        offsets=[
+                            TopicPartition(
+                                msg.topic(),
+                                msg.partition(),
+                                msg.offset() + 1
+                            )
+                        ]
+                    )
+                    print(
+                        f"Offset committed:"
+                        f" partition={msg.partition()}"
+                        f" | offset={msg.offset()}\n"
+                    )
+
         except KeyboardInterrupt:
-            print("\n Shutdown signal received.")
-
-        except Exception as e:
-            print(f"Consumer error : {e}")
+            print("\nShutdown signal received.")
 
         finally:
             self.consumer.close()

@@ -1,5 +1,5 @@
 # Kafka
-kafka-python-ng==2.2.3
+confluent-kafka==2.4.0
 
 # Spark + Delta Lake
 pyspark==3.5.0
