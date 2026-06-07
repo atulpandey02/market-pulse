@@ -5,8 +5,8 @@ from pyspark.sql.types import *
 # CONFIG
 KAFKA_BOOTSTRAP_SERVERS = "kafka:29092"
 KAFKA_TOPIC = "stock.price.ticks"
-CHECKPOINT_DIR = "/tmp/checkpoints/bronze_stream"
-BRONZE_OUTPUT = "/tmp/delta/bronze/stock_ticks"
+CHECKPOINT_DIR = "/tmp/spark-data/checkpoints/bronze_stream"
+BRONZE_OUTPUT = "/tmp/spark-data/delta/bronze/stock_ticks"
 
 # SCHEMA
 TICK_SCHEMA = StructType([
