@@ -24,3 +24,6 @@ flake8==7.0.0
 
 # Environment
 python-dotenv==1.0.1
+
+# Flink 
+apache-flink==1.18.0
