@@ -27,3 +27,6 @@ python-dotenv==1.0.1
 
 # Flink 
 apache-flink==1.18.0
+
+# GreatExpectation
+great-expectations==0.18.12
