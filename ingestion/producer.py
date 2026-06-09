@@ -1,6 +1,8 @@
 import json
 import time
 import random
+import sys
+import signal
 from datetime import datetime, timezone
 from confluent_kafka import Producer
 
@@ -101,7 +103,16 @@ if __name__ == "__main__":
     generator = TickGenerator(symbols=SYMBOLS)
     producer = StockPriceProducer(bootstrap_servers=BOOTSTRAP_SERVERS, topic=TOPIC)
     pipeline = IngestionPipeline(producer=producer, generator=generator)
-    pipeline.run(num_ticks=10, interval_seconds=1)
+    
+    def handle_shutdown(signum, frame):
+        print("\nShutdown signal received. Closing producer...")
+        producer.close()
+        sys.exit(0)
 
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+
+    # Run continuously until Ctrl+C
+    pipeline.run(num_ticks=999999, interval_seconds=2)
 
 # Message Schema
